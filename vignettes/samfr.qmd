@@ -57,7 +57,7 @@ knitr::knit_hooks$set(chunk = function(x, options) {
 })
 ```
 **samfr** (pour Social Account Matrix for France) est un package permettant de
-contruire facilement et de manière personnalisée une MCS (matrice de
+construire facilement et de manière personnalisée une MCS (matrice de
 comptabilité sociale) pour la France. Le but de la MCS est de résumer,
 sous la forme d'un tableau à double entrée, l'activité économique d'un
 territoire. Elle est construite à partir des données des deux tableaux
@@ -79,7 +79,7 @@ Le package **sam** propose deux fonctions principales :
 - `sam` met en forme les éléments des tableaux de synthèse afin de
   construire une matrice de comptabilité sociale.
 
-# Les tableaux synthétiques
+# Les tableaux de synthèse
 
 Le TES se présente comme un tableau "en T", constitué de 4 éléments :
 
@@ -137,9 +137,9 @@ primaires. Notons que :
   correction territoriale (non sectorisée),
 - l'épargne brute des ménages est augmentée de D8 (ajustement pour
   variation des droits à pension), au détriment de celle des sociétés
-  non financiaires.
+  non financières.
   
-Les tableaux synthétiques sont stockés dans un tableau interne de **sam**
+Les tableaux de synthèse sont stockés dans un tableau interne de **sam**
 appelé `TBL` : 
 
 ```{r }
@@ -195,7 +195,7 @@ library(tinytable)
 library(tibble)
 ```
 
-# Extraction des tableaux synthétiques avec `stbl`
+# Extraction des tableaux de synthèse avec `stbl`
 
 `sam:::TBL` n'a pas vocation a être manipulé directement par
 l'utilisateur. La fonction `sam::stbl` permet d'extraire et de
@@ -257,14 +257,14 @@ stbl(2023, tableau = "produits", net_acc = FALSE, naf = "A4")
 On a ici choisi une nomenclature en 4 positions et la variation de
 stocks (`"ds"`) est renvoyée distinctement de l'investissement
 (`"fbcf"`). Notez que les deux variables `an` et `tableau` ne sont pas
-spéficiées et prennent donc les valeurs par défauts, respectivement
+spécifiées et prennent donc les valeurs par défauts, respectivement
 2023 et `"produits"`.
 
 Pour le TEE, les arguments spécifiques sont :
 
 - `sep_ent` : un booléen, faux par défaut qui indique si on souhaite
   distinguer ou fusionner les sociétés financières et non
-  financiaires\ ; dans le premier cas les deux agents sont `"snf"` et
+  financières\ ; dans le premier cas les deux agents sont `"snf"` et
   `"sf"`, dans le second cas, l'agent unique est `"ent"`,
 - `agents` : un éventuel sous-ensemble d'agents,
 - `comptes` : un sous ensemble de comptes parmi `"prod"` (compte de
@@ -325,7 +325,7 @@ facteurs par habitant en euros de 1995, on utilisera :
 rev_facteurs |> pop() |> ipc(base = 1995)
 ```
 
-Très souvent, il est utile d'aggréger les valeurs par une fonction,
+Très souvent, il est utile d'agréger les valeurs par une fonction,
 selon un ou plusieurs caractères. Reprenons l'exemple du revenu des
 facteurs, cette fois-ci en nomenclature A4:
 
@@ -488,7 +488,7 @@ stbl(tableau = "tee", agents = c("men", "etat"),
 ```
 
 Un second exemple (@tbl-branches) présente les comptes des branches
-pour deux années. On utilise l'argment `label`, qui permet de
+pour deux années. On utilise l'argument `label`, qui permet de
 remplacer les acronymes des variables spécifiées par des labels
 explicites.
 
@@ -516,7 +516,7 @@ stbl(2022:2023, tableau = "branches", naf = "A4") |>
 ```
 # Construction d'une MCS avec la fonction sam
 
-La fonction `sam` construit la MCS. Les différents élements de la MCS
+La fonction `sam` construit la MCS. Les différents éléments de la MCS
 sont obtenus en faisant appel à la fonction `stbl`, avec un format
 particulier appelé `"sam"`, obtenu en appliquant la fonction
 `stbl2sam` :
@@ -624,7 +624,7 @@ sam(2023, naf = "A1", tot_gen = TRUE, rev_int = TRUE,
 
 # Figures
 
-Dans cette section, on donne quelques examples de graphiques, réalisés
+Dans cette section, on donne quelques exemples de graphiques, réalisés
 avec le package **tinyplot**.
 
 
@@ -661,7 +661,7 @@ po <- po |> add_label("variable")
 ```
 
 Le graphique que l'on souhaite créer est un graphique à "surfaces
-cummulées". Il nécessite que les différents impôts soient mesurés
+cumulées". Il nécessite que les différents impôts soient mesurés
 en proportions :
 
 
@@ -700,7 +700,7 @@ po_tot <- setaname(po_tot, "valeur", "impots")
 ```
 Pour le PIB, on peut utiliser la définition basée sur la somme des
 demandes finales. On extrait les différentes composantes de la demande
-et on en exclut les consommations intermédaires avant de les sommer
+et on en exclut les consommations intermédiaires avant de les sommer
 pour chaque année et de renommer la colonne :
 
 
