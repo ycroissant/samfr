@@ -28,6 +28,6 @@ The features of the package are described in a vignette that can be
 obtained as a pdf file:
 
 ```
-vignette("samfr", package = "samfr")
+vignette("samfr", package = "samfr", build-vignettes = TRUE)
 ```
 
