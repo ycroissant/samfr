@@ -1,0 +1,4 @@
+^inst/extdata/.+$
+^data-raw/read_data/.+$
+^data-raw/.+$
+
