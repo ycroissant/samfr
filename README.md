@@ -21,13 +21,13 @@ The **samfr** package is only available on **github**. To install it,
 first install the **remotes** packaget and then write in the consol:
 
 ```
-remotes::install_github("ycroissant/samfr")
+remotes::install_github("ycroissant/samfr", build-vignettes = TRUE)
 ```
 
 The features of the package are described in a vignette that can be
 obtained as a pdf file:
 
 ```
-vignette("samfr", package = "samfr", build-vignettes = TRUE)
+vignette("samfr", package = "samfr")
 ```
 
