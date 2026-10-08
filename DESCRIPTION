@@ -1,0 +1,20 @@
+Package: samfr
+Version: 0.0-1
+Date: 2026-10-08
+Title: "Social Account Matrix for France"
+Authors@R: c(person("Yves", "Croissant", role = c("aut", "cre"), email = "yves.croissant@univ-reunion.fr", comment = c(ORCID = "0000-0002-4857-7736")))
+Depends: R (>= 4.1.0)
+Imports: tinytable
+Suggests: quarto, knitr, tibble, tinyplot
+Description: Social Account Matrix for France, computed using querries to synthetic tables.
+VignetteBuilder: quarto
+License: GPL (>=2)
+Encoding: UTF-8
+URL: https://www.R-project.org
+Roxygen: list(markdown = TRUE)
+Author: Yves Croissant [aut, cre] (<https://orcid.org/0000-0002-4857-7736>)
+Maintainer: Yves Croissant <yves.croissant@univ-reunion.fr>
+LazyData: true
+NeedsCompilation: no
+Packaged: 2022-04-14 15:37:01 UTC; yves
+Config/roxygen2/version: 8.1.0

@@ -1,0 +1,771 @@
+---
+title: "Introduction au package samfr"
+author: "Yves Croissant"
+titlepage: true
+date: \today
+lang: fr
+crossref:
+  fig-title: "Figure"
+  tbl-title: "Tableau"
+  lof-title: "Table des figures"
+  lot-title: "Liste des tableaux"
+toc-own-page: true
+titlepage-color: "FFF5EE"
+titlepage-rule-height: 2
+titlepage-logo: "cemoi.png"
+header-includes:
+- \usepackage{pdflscape}
+- \newcommand{\blandscape}{\begin{landscape}}
+- \newcommand{\elandscape}{\end{landscape}}
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    template: eisvogel.tex
+    keep-tex: true
+    pdf-engine-opt: --no-toc-relocation
+vignette: >
+  %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{Introduction au package mcs}
+  %\VignetteEngine{quarto::pdf}
+---
+
+
+```{r }
+#| label: setup
+#| include: false
+knitr::opts_chunk$set(message = FALSE,
+                      warning = FALSE,
+                      out.width = "80%",
+                      fig.asp = 0.8,
+                      fig.align = "center",
+                      cache = FALSE,
+                      echo = TRUE)
+options(width = 60,
+        knitr.table.format = "latex",
+        knitr.booktabs = TRUE,
+        knitr.kable.NA = "",
+        pillar.print_max = 3,
+        pillar.print_min = 3,
+        tibble.print_max = 3,
+        tibble.print_min = 3
+)
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  paste0("\n \\", "small","\n\n", x, "\n\n \\normalsize")
+})
+```
+**samfr** (pour Social Account Matrix for France) est un package permettant de
+contruire facilement et de manière personnalisée une MCS (matrice de
+comptabilité sociale) pour la France. Le but de la MCS est de résumer,
+sous la forme d'un tableau à double entrée, l'activité économique d'un
+territoire. Elle est construite à partir des données des deux tableaux
+de synthèse :
+
+- le TES (Tableau Entrées-Sorties),
+- le TEE (Tableau Economique d'ensemble).
+
+Le premier présente les emplois et les recettes en produits, la
+matrice des consommations intermédiaires, ainsi que les comptes de
+production et d'exploitation des branches productives. Le second
+synthétise l'activité des agents institutionnels (ménage, entreprise,
+Etat et reste du monde en particulier).
+
+Le package **sam** propose deux fonctions principales :
+
+- `stbl` permet d'extraire et de mettre en forme les éléments des
+  tableaux de synthèse,
+- `sam` met en forme les éléments des tableaux de synthèse afin de
+  construire une matrice de comptabilité sociale.
+
+# Les tableaux synthétiques
+
+Le TES se présente comme un tableau "en T", constitué de 4 éléments :
+
+- à gauche les ressources en produits,
+- à droite les emplois en produits,
+- au milieu le tableau des entrées intermédiaires (le TEI),
+- en bas les comptes de production et d'exploitation des branches.
+
+Le TEI est un tableau carré indiquant les consommations intermédiaires
+utilisées par chaque branche (en colonne) pour chaque produit (en
+ligne). 
+
+Un quatrième tableau complète le TES, il est disponible dans le TES
+symétrique ; il s'agit du tableau de production, qui indique la
+production de chaque produit (en colonne) par chaque branche (en
+ligne). 
+
+**sam** contient l'ensemble des TES disponibles sur le site de
+l'INSEE, dans deux nomenclatures :
+
+- la nomenclature **A17** en 17 branches depuis 1949,
+- la nomenclature **A38** en 38 branches depuis 1978.
+
+
+Le TEE présente les emplois (à gauche) et les ressources (à droite)
+pour les secteurs institutionnels (sociétés financières et
+non-financières, ménages, ISBL, Etat et reste du monde), en décrivant
+les opérations comme l'enchaînement d'un ensemble de comptes, le solde
+d'un compte (en emploi) devenant la ressource du compte suivant\ :
+
+- le **compte de production** soustrait de la production les consommations
+  intermédiaires et est soldé par la *valeur ajoutée brute*,
+- le **compte d'exploitation** soustrait de la valeur ajoutée brute
+  les salaires (incluant les cotisations salariales et patronales) et
+  les impôts à la production et est soldé par l'*excédent brut
+  d'exploitation* (les ressources en salaires et en impôts à la
+  production ne sont pas intégrés). L'EBE des ménages est la somme du
+  revenu mixte brut et de l'EBE "pur", constitué des loyers fictifs.
+- le **compte d'affectation des revenus primaires** indique les
+  transferts de revenus de la propriété entre agents (un jeu à somme
+  nulle), les salaires (incluant les cotisations patronales et
+  salariales) et les impôts à la production reçus. Le solde de ce
+  compte est le *revenu primaire*.
+- le **compte de distribution secondaire des revenus** intègre l'impôt
+  sur le revenu, les cotisations et prestations sociales, ainsi que
+  des transferts divers (en particulier les primes et indemnités
+  d'assurance-dommage), son solde est le *revenu disponible*,
+- le **compte d'utilisation du revenu** intègre la consommation finale
+  et son solde est l'*épargne brute*.
+
+Le TEE n'est utilisé qu'à partir du compte d'affectation des revenus
+primaires. Notons que :
+
+- La consommation finale des ménages dans le TEE est nette de la
+  correction territoriale (non sectorisée),
+- l'épargne brute des ménages est augmentée de D8 (ajustement pour
+  variation des droits à pension), au détriment de celle des sociétés
+  non financiaires.
+  
+Les tableaux synthétiques sont stockés dans un tableau interne de **sam**
+appelé `TBL` : 
+
+```{r }
+#| label: TBL
+#| eval: TRUE
+samfr:::TBL |> head()
+```
+
+Les variables de ce tableau sont :
+
+- `an` : l'année,
+- `tableau` : `"produits"` pour les emplois et les ressources en
+  produits, `"branches"` pour les comptes de production et
+  d'exploitation des branches, `"tei"` pour la table des consommations
+  intermédiaires et `"matprod"` pour la table de production,
+- `compte` et `compte2` indiquent le(s) compte(s) concernés ; pour
+  `tee`, il s'agit des agents, pour `branches` des branches et pour
+  `produits` des produits. `compte2` n'est pertinent que pour les deux
+  tableaux matriciels des emplois intermédiaires et de la
+  production. Dans ce cas, `compte` indique le produit et `compte2` la
+  branche,
+- `variable` est l'acronyme de la variable, par exemple `"cf"` pour la
+  consommation finale des ménages,
+- `valeur` est la valeur de la variable en milliards d'euros courants,
+- `sgn` est le "signe" de la variable : `"pos"` s'il s'agit d'une
+  ressource, `"neg"` s'il s'agit d'un emploi et `"both"` pour les deux
+  tableaux matriciels.
+
+Toutes les lignes de `sam:::TBL` sont exactement des valeurs de
+variables disponibles sur le site de l'INSEE, à une exception près. La
+matrice de production n'est disponible que pour 2023, pour les autres
+années, nous ne connaissons que les marges de cette matrice,
+c'est-à-dire la production des branches et la production en
+produit. La matrice a été estimée pour chaque année par la méthode des
+facteurs de croissance, la matrice initiale pour l'année $t$ étant
+celle obtenue en $t + 1$.
+
+Toutes les valeurs sont exprimées en milliards d'euros courant.
+
+Les tableaux renvoyés par `sam` et par `stbl` sont de classe `"tbl"`,
+`"tbl_df"` et `"data.frame"`, ce sont autrement dit des tibbles et pas
+des data frame ordinaires. L'utilisation du package **tibble** est
+conseillé car cela permet une impression beaucoup plus agréables des
+tableaux, mais elle est optionnelle. Nous l'utiliserons dans ce
+document, par conséquent, nous chargerons, en plus du package **sam**,
+le package **tibble**, et également le package **tinytable** qui
+permet la mise en forme des tableaux. 
+
+```{r }
+#| label: librairies
+library(samfr)
+library(tinytable)
+library(tibble)
+```
+
+# Extraction des tableaux synthétiques avec `stbl`
+
+`sam:::TBL` n'a pas vocation a être manipulé directement par
+l'utilisateur. La fonction `sam::stbl` permet d'extraire et de
+mettre en forme un sous-ensemble de lignes de ce tableau. Ces deux
+arguments principaux sont l'année (`an`) et le tableau
+(`tableau`). Par exemple, pour extraire les comptes des branches en
+2013, on utilisera :
+
+```{r }
+#| label: stbl_branches
+stbl(an = 2013, tableau = "branches")
+```
+
+Les arguments supplémentaires sont :
+
+- `unit`, l'unité de mesure, soit `"G"` pour des milliards d'euros,
+  `"M"` pour des millions d'euros, `"K"` pour des milliers d'euros et
+  `"E"` pour des euros,
+- `sgn` permet de spécifier si on souhaite renvoyer les emplois (`sig
+  = "neg"`) ou les ressources (`sig = "pos"`), les deux étant renvoyés
+  par défaut,
+- `variables` est un vecteur de caractères permettant de renvoyer un
+  sous-ensemble des variables du tableau sélectionné,
+- `net_tax` est une valeur logique, si elle est vraie, les taxes sur
+  les produits (`t.pr`) dans les ressources en produits et les taxes
+  sur la production (`t.br`) dans le compte d'exploitation des
+  branches sont renvoyées nettes des subventions (`s.pr` et
+  `s.br`). Dans le cas inverse, le tableau renvoie séparément les
+  taxes et les subventions,
+- `isbl` est une valeur logique, si elle est vraie, la consommation
+  finale des ISBL (institutions sans but lucratif) est indiquée sous
+  le nom de `"isbl"` dans la table des produits et les ISBL
+  constituent un agent du TEE ; autrement les ISBL sont fusionnés avec
+  les ménages,
+  
+Par exemple, pour renvoyer les ressources en produits en millions
+d'euros courants en 2013 et 2015, en distinguant impôts et subventions :
+
+```{r }
+#| stbl_produits
+stbl(an = c(2013, 2015), tableau = "produits", sgn = "pos",
+       net_tax = FALSE, unit = "M")
+```
+
+Certaines variables sont spécifique au tableau. Pour le TES,
+
+- `net_acc` est une valeur logique, si elle est vraie, la formation
+  brute de capitale fixe (`"fbcf"`) est renvoyée nette de la variation
+  des stocks ; autrement, la table des produits renvoie
+  séparément la FBCF et la variation des stocks (`"ds"`),
+- `naf` indique la nomenclature d'activité ; par défaut, c'est `"A17"`
+de 1949 à 1977 et `"A38"` à partir de 1978.
+
+```{r }
+#| stbl_spec_tes
+stbl(2023, tableau = "produits", net_acc = FALSE, naf = "A4")
+```
+
+On a ici choisi une nomenclature en 4 positions et la variation de
+stocks (`"ds"`) est renvoyée distinctement de l'investissement
+(`"fbcf"`). Notez que les deux variables `an` et `tableau` ne sont pas
+spéficiées et prennent donc les valeurs par défauts, respectivement
+2023 et `"produits"`.
+
+Pour le TEE, les arguments spécifiques sont :
+
+- `sep_ent` : un booléen, faux par défaut qui indique si on souhaite
+  distinguer ou fusionner les sociétés financières et non
+  financiaires\ ; dans le premier cas les deux agents sont `"snf"` et
+  `"sf"`, dans le second cas, l'agent unique est `"ent"`,
+- `agents` : un éventuel sous-ensemble d'agents,
+- `comptes` : un sous ensemble de comptes parmi `"prod"` (compte de
+  production), `"expl"` (compte d'exploitation), `"affect"` (compte
+  d'affectation des revenus primaires), `"dist"` (compte de
+  distribution des revenus secondaires) et `"util"` (compte
+  d'utilisation du revenu),
+- `net_cap` : un booléen (vrai par défaut), s'il est faux on distingue
+  l'EBE, le revenu mixte brut et le solde pour chaque agent des
+  revenus de la propriété, autrement un revenu du capital agrégé est
+  renvoyé,
+- `simpl_dist` : un booléen (faux par défaut), qui sera expliqué
+  ci-dessous.
+
+Par exemple, pour renvoyer les informations concernant les comptes
+de production et de distribution pour les sociétés financières et
+non-financières, on utilisera :
+
+```{r }
+#| stbl_spec_tee
+stbl(tableau = "tee", comptes= c("prod", "util"),
+       agents = c("snf", "sf"), sep_ent = TRUE)
+```
+
+# Normalisation et transformation des séries
+
+En particulier dans le cas où on s'intéresse à l'évolution
+chronologique d'une ou plusieurs variables, il peut être pertinent de
+mesurer cette variable par habitant et en euros constant. **sam**
+propose deux fonctions `pop` et `cpi` pour réaliser cette
+opération. Considérons par exemple les revenus du travail et du
+capital pour la période 2020-2021 :
+
+```{r }
+#| label: stbl_rev_facteurs
+rev_facteurs <- stbl(2020:2021, "branches",
+                     variables = c("k", "l"), naf = "A1")
+```
+
+La fonction `pop` prend pour argument un tableau et renvoie soit le
+tableau augmenté de la colonne de population (en millions d'habitants)
+si `deflate = FALSE` ou la série divisée par la population si `deflate
+= TRUE` (par défaut):
+
+```{r }
+#| label: pop
+rev_facteurs |> pop(deflate = FALSE)
+rev_facteurs |> pop()
+```
+
+La fonction `ipc` réalise la même opération avec l'indice des prix à
+la consommation. Elle a un argument supplémentaire `base` qui indique
+l'année de base souhaitée. Par exemple, pour obtenir les revenus des
+facteurs par habitant en euros de 1995, on utilisera :
+
+```{r }
+#| label: ipc
+rev_facteurs |> pop() |> ipc(base = 1995)
+```
+
+Très souvent, il est utile d'aggréger les valeurs par une fonction,
+selon un ou plusieurs caractères. Reprenons l'exemple du revenu des
+facteurs, cette fois-ci en nomenclature A4:
+
+
+```{r }
+#| label: rev_facteurs_a4
+rev_facteurs <- stbl(2020:2021, "branches",
+                     variables = c("l", "k"),
+                     naf = "A4")
+rev_facteurs
+```
+Pour calculer par exemple le revenu total par secteur et par année, on
+doit sommer les valeurs en fonction des deux variables `an` et
+`naf`. Cette opération est assez malaisée à réaliser en base-R, mais
+évidente avec **dlyr**, puisqu'elle s'écrit:
+
+```{r }
+#| label: dplyr_1
+#| eval: false
+summarise(rev_facteurs, valeur = sum(valeur), .by = c(an, naf))
+```
+**sam** propose la fonction `condsummary` qui prend pour argument le
+tableau, un vecteurs de caractères indiquant les variables de
+conditionnement et la fonction à utiliser, cette fonction étant
+appliquée à la colonne `"valeur"` :
+
+```{r }
+#| label: condsummary_1
+condsummary(rev_facteurs, c("an", "naf"), sum)
+```
+
+Par défaut, la fonction renvoie un tableau contenant les variables de
+conditionnement et la série calculée. Si l'argument `dim` est fixé à
+`"table"`, `condsummary` renvoie la série calculée, avec un format
+compatible avec le tableau initial :
+
+```{r }
+#| label: condsummary_table
+condsummary(rev_facteurs, c("an", "naf"), sum, dim = "table")
+```
+ce qui s'écrit avec **dplyr** :
+
+```{r }
+#| label: mutate
+#| eval: false
+mutate(rev_facteurs, valeur = sum(valeur), .by = c("an", "naf"))
+```
+Ce calcul est très utile pour calculer des parts, ici les parts des
+deux facteurs dans le revenu de chaque branche :
+
+
+```{r }
+#| label: condsummary_div
+rev_facteurs$valeur /
+    condsummary(rev_facteurs, c("an", "naf"), sum, dim = "table")
+```
+Ce qui s'écrit avec **dplyr** :
+
+```{r }
+#| label: mutate_2
+#| eval: false
+mutate(rev_facteurs, valeur = valeur / sum(valeur),
+       .by = c(an, naf)) |> pull(valeur)
+```
+
+Les modalités des différentes variables sont des noms courts (par
+exemple `"cf"` pour la consommation finale des ménages). Ces noms
+courts peuvent être remplacés par des noms long en utilisant la
+fonction `add_label` en renseignant en second argument les colonnes
+concernées :
+
+```{r }
+#| label: add_label
+rev_facteurs |> add_label(c("variable", "sgn"))
+```
+
+# Format des tableaux
+  
+`stbl` renvoie un tableau au format "long", c'est-à-dire que chaque
+ligne correspond à la valeur d'une variable, définie par un compte
+(agent ou code d'activité), un "signe" (emploi ou ressource), une
+année. Notez que lorsqu'une des colonnes est inutile (par exemple la
+colonne année si une seule année est sélectionnée), elle est
+supprimée. Ce format se prête bien aux différentes manipulations
+nécessaires à la construction d'une MCS. 
+
+En revanche, en termes d'apparence et d'analyse de résultats, un
+format "large" est préférable. Dans ce cas, la table initiale est
+pivotée en largeur, les modalités contenues dans une colonne du
+tableau au format "long" constituant autant de colonnes dans le
+tableau au format "large". De plus des groupes de lignes et de
+colonnes peuvent être définis. Par exemple, pour un TEE, les groupes
+de lignes seront définies par les comptes (de production,
+d'exploitation, etc.) et les groupes de colonnes par les emplois /
+ressources. La fonction `xtbl` réalise cette opération. Ces deux
+arguments obligatoires sont un tableau et une formule indiquant la
+forme souhaitée pour le tableau formaté. Une formule du type `w + x ~
+y + z` indique que les lignes correspondent aux modalités de `x`, les
+colonnes aux modalités de `z` et que les groupes de lignes et de
+colonnes sont définis respectivement par les modalités des variable
+`w` et `y`. Les groupes sont optionnels, par exemple des formules du
+type `w + x ~ z` ou `x ~ y
++ z` ou `x ~ z` sont tout à fait valables. Par exemple, pour présenter
+  les comptes des branches, en se limitant aux emplois, on utilisera :
+
+```{r }
+#| label: xtbl_simple
+stbl(2023, naf = "A4", tableau = "branches", sgn = "neg") %>%
+    xtbl(naf ~ variable)
+```
+
+Pour le TEE, les colonnes sont les agents, en distinguant emplois et
+ressources, et les lignes sont les variables, regroupées par compte :
+
+```{r }
+#| label: xtbl_groupes
+stbl(tableau = "tee", agents = c("men", "etat"),
+     comptes = c("prod", "expl")) %>%
+    xtbl(cpte + variable ~ sgn + agent)
+```
+
+Notez que les colonnes regroupées ont un nom constitué de la modalité
+de la variable de regroupement, le signe `"|"` et la modalité de la
+variable en colonne, par exemple `"neg|men"`.
+
+L'argument `shares` de `xtbl` permet de calculer des proportions en
+indiquant par rapport à quelles variables on souhaite calculer ces
+proportions. Par exemple, pour calculer la structure par branche des
+différents éléments des comptes de production et d'exploitation, on
+utilisera :
+
+```{r }
+#| label: xtbl_shares
+stbl(2022:2023, naf = "A4", tableau = "branches", sgn = "neg") |>
+    xtbl(an + naf ~ variable, shares = c("an", "naf"))
+```
+
+Alors que pour calculer la part sectorielle de chaque composante des
+comptes de production et d'exploitation, on utilisera :
+
+```{r }
+#| label: xtbl_simple_2
+stbl(2022:2023, naf = "A4", tableau = "branches", sgn = "neg") |> 
+    xtbl(an + naf ~ variable, shares = c("an", "variable"))
+```
+
+La fonction `xtbl2tt` permet de formater un tableau issu de la
+fonction `xtbl` en **markdown**, **LaTeX** ou en **html**, en
+utilisant **tinytable**. La @tbl-tee présente les comptes de production
+et d'exploitation du TEE, avec des groupes de ligne correspondant aux
+comptes et des groupes de colonnes aux emplois et aux ressources.
+
+```{r }
+#| label: tbl-tee
+#| tbl-cap: "Un TEE formaté à l'aide de la fonction xtbl2tt"
+stbl(tableau = "tee", agents = c("men", "etat"),
+     comptes = c("prod", "expl")) |> 
+    xtbl(cpte + variable ~ sgn + agent) |> 
+    xtbl2tt(height = 0.5)
+```
+
+Un second exemple (@tbl-branches) présente les comptes des branches
+pour deux années. On utilise l'argment `label`, qui permet de
+remplacer les acronymes des variables spécifiées par des labels
+explicites.
+
+```{r }
+#| label: tbl-branches
+#| tbl-cap: "Equilibre emplois-ressources formaté à l'aide de xtbl2tt"
+stbl(2022:2023, tableau = "branches", naf = "A4") |>
+    xtbl(an + naf ~ sgn + variable, label = c("sgn", "naf")) |> 
+    xtbl2tt(height = 0.)
+```
+La librairie **tinytable** fournit deux fonctions pour définir le
+format et le style des cellules (respectivement `format_tt` et
+`style_tt`). Ces fonctions peuvent être utilisées avec profit pour
+améliorer l'apparence du tableau (@tbl-branches2).
+
+```{r }
+#| label: tbl-branches2
+#| tbl-cap: "Equilibre emplois-ressources formaté à l'aide de xtbl2tt"
+stbl(2022:2023, tableau = "branches", naf = "A4") |>
+    xtbl(an + naf ~ sgn + variable, labels = c("sgn", "naf")) |> 
+    xtbl2tt(height = 0.5) |>
+    format_tt(digits = 1) |>
+    style_tt(i = "groupi", align = "c", color = "teal", line = "lrtb") |>
+    style_tt(fontsize = 0.8) 
+```
+# Construction d'une MCS avec la fonction sam
+
+La fonction `sam` construit la MCS. Les différents élements de la MCS
+sont obtenus en faisant appel à la fonction `stbl`, avec un format
+particulier appelé `"sam"`, obtenu en appliquant la fonction
+`stbl2sam` :
+
+```{r }
+#| label: stbl2sam
+stbl(2023, tableau = "produits") |> stbl2sam() |> head()
+```
+
+Chaque ligne contient toujours une valeur mais, le compte en ligne
+(ressource) et en colonne (emploi) est désormais identifié par deux
+variables :
+
+- `row_1` et `col_1` indiquent le groupe de comptes, soit `br`
+  (branches), `pr` (produits), `fact` (facteurs), `mg` (marges), `tax`
+  (taxes sur les branches et sur les produits), `dist` (distribution),
+  `agt` (agent) et `acc` (accumulation),
+- `row_2` et `col_2` détaille le compte, par exemple `men` pour les
+  ménages, `t.br` pour les impôts sur la production.
+
+L'argument `simpl_dist` de la fonction `stbl` n'a pas d'effet sur le
+tableau renvoyé par celle-ci, mais il est important si `stbl2sam` est
+appelé ensuite. Si cet argument est `TRUE`, le compte de distribution
+du TEE est simplifié :
+
+- tous les impôts sont versés à l'Etat,
+- toutes les cotisations sociales sont acquittées par les ménages et
+  versées à l'Etat,
+- toutes les prestations sociales sont versées aux ménages et acquittés
+  par l'Etat,
+- l'IR est acquitté par les ménages et par les entreprises.
+
+L'argument principal de `sam` est l'année pour lequel on souhaite
+construire la MCS :
+
+```{r }
+#| label: sam1
+sam(2023)
+```
+Des arguments complémentaires sont passés à `stbl` :
+
+- `naf` pour définir la nomenclature,
+- `isbl` pour isoler les ISBL,
+- `net_tax` pour agréger les taxes et les subventions sur la
+  production et sur les produits,
+- `net_acc` pour agréger la FBCF et la variation des stocks,
+- `unit` pour définir l'unité,
+- `sep_ent` pour séparer les sociétés financières et non-financières,
+- `net_cap` pour détailler les revenus du capital.
+
+
+D'autres sont spécifiques à `sam` :
+
+- `rev_int` permet de calculer deux revenus intermédiaires des agents,
+  le revenu primaire et le revenu disponible,
+- `trace` permet d'imprimer des résultats intermédiaires,
+- `tot_gen` permet d'ajouter un total pour chaque compte.
+
+
+Une matrice de comptabilité sociale en 4 branches, avec mention des
+revenus intermédiaires, identification des ISBL et séparation de la
+variation des stocks et de la FBCF est obtenue en écrivant :
+
+```{r }
+#| label: sam2
+sam(2023, naf = "A4", rev_int = TRUE, isbl = TRUE, net_acc = FALSE)
+```
+
+La fonction `sam2tt` permet de transformer le tableau contenant les
+différents éléments de la MCS dans un tableau au format "large",
+regroupant les lignes et les colonnes, en utilisant la fonction `tt`
+du package **tinytable**. Un exemple est donné dans le @tbl-sam, pour
+lequel il n'y a pas de décomposition sectorielle :
+
+```{r }
+#| label: tbl-sam
+#| tbl-cap: "une première MCS"
+#| message: false
+sam(2023, naf = "A1", tot_gen = TRUE, rev_int = TRUE) |>
+    sam2tt(height = 0.4,
+           colors = list(groupes = "lightgrey", comptes = "lightyellow",
+                      soldes = "lightblue")) |>
+    style_tt(fontsize = 0.4) |>
+    theme_grid()
+```
+`sam2tt` renvoie un objet de classe `tinytable`, il peut ainsi être
+modifié en utilisant les fonctions de **tinytable**, en particulier,
+`style_tt`, `format_tt`, et `theme_###`.
+
+Une seconde MCS est obtenue en simplifiant le TEE, à l'aide de
+l'argument `simpl_dist` (@tbl-sam2).
+
+```{r }
+#| label: tbl-sam2
+#| tbl-cap: "une première avec TEE simplifié"
+#| message: false
+sam(2023, naf = "A1", tot_gen = TRUE, rev_int = TRUE,
+    simpl_dist = TRUE) |>
+    sam2tt(height = 0.4) |>
+    style_tt(fontsize = 0.4) |>
+    theme_grid()
+```
+
+\clearpage
+
+# Figures
+
+Dans cette section, on donne quelques examples de graphiques, réalisés
+avec le package **tinyplot**.
+
+
+```{r }
+#| label: tinyplot
+library(tinyplot)
+```
+
+
+## Structure des prélèvements obligatoires
+
+Les prélèvements obligatoires comprennent l'impôt sur le revenu et le
+patrimoine, les taxes sur les produits (en particulier TVA et droits
+de douane) et sur la production, ainsi que les cotisations
+sociales. On peut les extraire dans le TEE, en indiquant le nom des
+variables, qu'il s'agit d'une ressource et en limitant l'extraction
+aux opérations de l'Etat :
+
+
+```{r }
+#| label: po
+po <- stbl(1949:2023, "tee",
+          variable = c("ir", "cot", "t.pr.ag", "t.br.ag"),
+          sgn = "pos", agent = "etat")
+po
+```
+Ensuite on remplace les noms courts par des noms longs pour les
+variables en utilisant la fonction `add_label` :
+
+
+```{r }
+#| label: po_label
+po <- po |> add_label("variable")
+```
+
+Le graphique que l'on souhaite créer est un graphique à "surfaces
+cummulées". Il nécessite que les différents impôts soient mesurés
+en proportions :
+
+
+```{r }
+#| label: po_part
+po$part <- po$valeur /
+    condsummary(po, "an", sum, dim = "table") * 100
+```
+
+On peut enfin réaliser la @fig-po à l'aide de **tinyplot**.
+
+```{r }
+#| label: fig-po
+#| fig-cap: "Structure des prélèvements obligatoires en France"
+#| fig-asp: 1
+tinyplot(part ~ an | variable, data = po,
+         type = type_area(stack = TRUE),
+         palette = "harmonic",
+         xlab = "année",
+         ylab = "Pourcentage",
+         legend = list("bottom!", ncol = 1))
+```
+
+## Parts des prélèvements obligatoire dans le PIB
+
+Pour le montant des prélèvements obligatoires, il suffit de sommer les
+différents impôts précédemment extraits et de renommer la colonne :
+
+```{r }
+#| label: po_tot
+po <- stbl(1949:2023, "tee",
+          variable = c("ir", "cot", "t.pr.ag", "t.br.ag"),
+          sgn = "pos", agent = "etat")
+po_tot <- condsummary(po, "an", sum)
+po_tot <- setaname(po_tot, "valeur", "impots")
+```
+Pour le PIB, on peut utiliser la définition basée sur la somme des
+demandes finales. On extrait les différentes composantes de la demande
+et on en exclut les consommations intermédaires avant de les sommer
+pour chaque année et de renommer la colonne :
+
+
+```{r }
+#| label: pib
+pib <- stbl(1949:2023, "produits", naf = "A1",
+            variables = c("cf", "fbcf", "g", "x", "m", "cfisbl"))
+pib$valeur[pib$variable == "m"] <- - pib$valeur[pib$variable == "m"]
+pib <- condsummary(pib, "an", sum)
+pib <- setaname(pib, "valeur", "pib")
+```
+
+On peut ensuite fusionner les deux tableaux et calculer la part des
+prélèvements obligatoires dans le PIB :
+
+```{r }
+#| label: fig-partpo
+#| fig-cap: "Part des prélèvements obligatoires en France"
+z <- merge(po_tot, pib)
+z$part <- z$impots / z$pib * 100
+tinyplot(part ~ an, z, type = "l", xlab = "année", ylab = "Pourcentage")
+```
+
+## Structure productive
+
+On définit la structure par la part de valeur ajoutée produite par
+chaque secteur. On choisit une nomenclature simplifiée en 10 branches
+et on considère les années 1949 et 2023. La valeur ajoutée est la
+somme de la masse salariale et de l'excédent brut d'exploitation. On
+calcule ensuite les proportions sectorielles et on utilise un
+graphique en barres (@fig-partsect).
+
+```{r }
+#| label: fig-partsect
+#| fig-cap: "Part de chaque secteur dans la valeur ajoutée"
+va <- stbl(c(1949, 2023), "branches", naf = "A10",
+           variable = c("k", "l"))
+va <- condsummary(va, c("an", "naf"), sum)
+va$valeur = va$valeur / condsummary(va, "an", sum, dim = "table") * 100
+tinyplot(valeur ~ naf, va, type = "barplot", facet = ~ an)
+```
+## Revenus des facteurs par habitant en euros constants
+
+On extrait de nouveaux les revenus des facteurs du compte des
+branches, on utilise `pop` et `ipc` pour déflater les valeurs et on
+remplace le nom court des facteurs par des noms long.
+
+```{r }
+#| label: rev_facteurs_deflat
+rev_facteurs <- stbl(1949:2023, "branches",
+                     variables = c("l", "k"),
+                     naf = "A1") |> 
+    pop() |>
+    ipc(base = 2000) |>
+    add_label("variable")
+```
+
+On utilise ensuite **tinyplot**, en indiquant dans la formule que
+l'on souhaite un type de ligne différent pour les deux facteurs :
+
+
+```{r }
+#| label: fig-revdeflat
+#| fig-cap: "Revenu du capital et du travail par habitant en euros de 2000"
+tinyplot(valeur ~ an | variable, rev_facteurs,
+         type = "l", lty = "by")
+```
+
