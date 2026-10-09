@@ -4,12 +4,15 @@
 \alias{xtbl2tt}
 \title{A data frame formated as a markdown table using tinytable}
 \usage{
-xtbl2tt(x, height = 1, ...)
+xtbl2tt(x, height = 1, theme = TRUE, ...)
 }
 \arguments{
 \item{x}{a data frame}
 
-\item{height}{la hauteur des lignes}
+\item{height}{the height of the lines}
+
+\item{theme}{a boolean, if \code{TRUE} the \code{theme_sam} function is
+applied}
 
 \item{...}{supplementary arguments passed to \code{tinytable}}
 }

@@ -4,35 +4,15 @@
 \alias{sam2tt}
 \title{SAM formated as a markdown table}
 \usage{
-sam2tt(
-  x,
-  rm_zero = TRUE,
-  bigmark = " ",
-  decimal = ",",
-  digits = 1,
-  height = 1,
-  fontsize = 1,
-  colors = list(groupes = "grey70", comptes = "grey85", soldes = "grey95")
-)
+sam2tt(x, height = 1, theme = TRUE)
 }
 \arguments{
 \item{x}{a \code{sam} object}
 
-\item{rm_zero}{a boolean, if \code{TRUE}, zero values are removed from
-the matrix}
+\item{height}{the height of the lines}
 
-\item{bigmark}{a character indicating the millions separator}
-
-\item{decimal}{decomal sign (by default the comma)}
-
-\item{digits}{the number of digits}
-
-\item{height}{line height}
-
-\item{fontsize}{police size}
-
-\item{colors}{a named list of colors for the groups, the accounts
-and the soldes}
+\item{theme}{a boolean, if \code{TRUE} the \code{theme_sam} function is
+applied}
 }
 \description{
 The tinytable package is used and functions of this package can be

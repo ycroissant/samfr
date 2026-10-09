@@ -476,44 +476,53 @@ La fonction `xtbl2tt` permet de formater un tableau issu de la
 fonction `xtbl` en **markdown**, **LaTeX** ou en **html**, en
 utilisant **tinytable**. La @tbl-tee présente les comptes de production
 et d'exploitation du TEE, avec des groupes de ligne correspondant aux
-comptes et des groupes de colonnes aux emplois et aux ressources.
+comptes et des groupes de colonnes aux emplois et aux ressources. Les
+deux arguments optionnels de `xtbl2tt`, `height` pour la hauteur des
+lignes et un booléen `theme`, vrai par défaut. Si ce dernier argument
+est fixé à `FALSE`, un tableau brut est obtenu. 
 
 ```{r }
 #| label: tbl-tee
-#| tbl-cap: "Un TEE formaté à l'aide de la fonction xtbl2tt"
+#| tbl-cap: "Un TEE formaté à l'aide de la fonction xtbl2tt sans thème"
 stbl(tableau = "tee", agents = c("men", "etat"),
      comptes = c("prod", "expl")) |> 
     xtbl(cpte + variable ~ sgn + agent) |> 
-    xtbl2tt(height = 0.5)
+    xtbl2tt(height = 0.5, theme = FALSE)
 ```
 
-Un second exemple (@tbl-branches) présente les comptes des branches
-pour deux années. On utilise l'argument `label`, qui permet de
-remplacer les acronymes des variables spécifiées par des labels
-explicites.
+En fixant `theme` à `TRUE`, le thème par défaut de **samfr** est
+appliqué. Dans le @tbl-tee_theme, on utilise également la fonction
+`label` pour remplacer les noms courts par des noms longs.
+
+```{r }
+#| label: tbl-tee_theme
+#| tbl-cap: "Un TEE formaté à l'aide de la fonction xtbl2tt avec thème par défaut"
+stbl(tableau = "tee", agents = c("men", "etat")) |> 
+    xtbl(cpte + variable ~ sgn + agent,
+         labels = c("cpte", "variable", "sgn", "agent")) |> 
+    xtbl2tt(height = 0.5)
+```
+Le thème appliqué correspond à la fonction `theme_sam`, qui peut être
+utilisée explicitement avec différents arguments, comme illustré par
+le @tbl-branches qui présente les comptes des branches pour deux année
 
 ```{r }
 #| label: tbl-branches
 #| tbl-cap: "Equilibre emplois-ressources formaté à l'aide de xtbl2tt"
 stbl(2022:2023, tableau = "branches", naf = "A4") |>
     xtbl(an + naf ~ sgn + variable, label = c("sgn", "naf")) |> 
-    xtbl2tt(height = 0.)
+    xtbl2tt(height = 0.5, theme = FALSE) |>
+    theme_sam(digits = 4, grid = FALSE,
+              colors = list(groupes = "lightblue",
+                            comptes = "lightyellow"))
 ```
-La librairie **tinytable** fournit deux fonctions pour définir le
-format et le style des cellules (respectivement `format_tt` et
-`style_tt`). Ces fonctions peuvent être utilisées avec profit pour
-améliorer l'apparence du tableau (@tbl-branches2).
 
-```{r }
-#| label: tbl-branches2
-#| tbl-cap: "Equilibre emplois-ressources formaté à l'aide de xtbl2tt"
-stbl(2022:2023, tableau = "branches", naf = "A4") |>
-    xtbl(an + naf ~ sgn + variable, labels = c("sgn", "naf")) |> 
-    xtbl2tt(height = 0.5) |>
-    format_tt(digits = 1) |>
-    style_tt(i = "groupi", align = "c", color = "teal", line = "lrtb") |>
-    style_tt(fontsize = 0.8) 
-```
+`theme_sam` utilise en fait les deux fonctions de personnalisation de
+**tinytable** `format_tt` et `style_tt` qui peuvent être utilisées
+directement pour personnaliser avec plus de détails le tableau.
+
+\clearpage
+
 # Construction d'une MCS avec la fonction sam
 
 La fonction `sam` construit la MCS. Les différents éléments de la MCS
@@ -587,27 +596,22 @@ sam(2023, naf = "A4", rev_int = TRUE, isbl = TRUE, net_acc = FALSE)
 
 La fonction `sam2tt` permet de transformer le tableau contenant les
 différents éléments de la MCS dans un tableau au format "large",
-regroupant les lignes et les colonnes, en utilisant la fonction `tt`
-du package **tinytable**. Un exemple est donné dans le @tbl-sam, pour
-lequel il n'y a pas de décomposition sectorielle :
+regroupant les lignes et les colonnes. Un exemple est donné dans le
+@tbl-sam, pour lequel il n'y a pas de décomposition sectorielle :
 
 ```{r }
 #| label: tbl-sam
 #| tbl-cap: "une première MCS"
 #| message: false
 sam(2023, naf = "A1", tot_gen = TRUE, rev_int = TRUE) |>
-    sam2tt(height = 0.4,
-           colors = list(groupes = "lightgrey", comptes = "lightyellow",
-                      soldes = "lightblue")) |>
-    style_tt(fontsize = 0.4) |>
-    theme_grid()
+    sam2tt(height = 0.4, theme = FALSE) |>
+    theme_sam(fontsize = 0.4)
 ```
-`sam2tt` renvoie un objet de classe `tinytable`, il peut ainsi être
-modifié en utilisant les fonctions de **tinytable**, en particulier,
-`style_tt`, `format_tt`, et `theme_###`.
 
-Une seconde MCS est obtenue en simplifiant le TEE, à l'aide de
-l'argument `simpl_dist` (@tbl-sam2).
+Comme pour la fonction `xtbl2tt`, `sam2tt` a un argument `theme`, vrai
+par défaut qui applique la fonction `theme_sam` pour personnaliser le
+tableau.  Une seconde MCS est obtenue en simplifiant le TEE, à l'aide
+de l'argument `simpl_dist` (@tbl-sam2).
 
 ```{r }
 #| label: tbl-sam2
@@ -615,9 +619,8 @@ l'argument `simpl_dist` (@tbl-sam2).
 #| message: false
 sam(2023, naf = "A1", tot_gen = TRUE, rev_int = TRUE,
     simpl_dist = TRUE) |>
-    sam2tt(height = 0.4) |>
-    style_tt(fontsize = 0.4) |>
-    theme_grid()
+    sam2tt(height = 0.4, theme = FALSE) |>
+    theme_sam(fontsize = 0.4)
 ```
 
 \clearpage
@@ -627,12 +630,10 @@ sam(2023, naf = "A1", tot_gen = TRUE, rev_int = TRUE,
 Dans cette section, on donne quelques exemples de graphiques, réalisés
 avec le package **tinyplot**.
 
-
 ```{r }
 #| label: tinyplot
 library(tinyplot)
 ```
-
 
 ## Structure des prélèvements obligatoires
 

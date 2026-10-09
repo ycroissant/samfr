@@ -57,7 +57,6 @@ as.matrix.sam <- function(x, ...){
     x
 }
 
-
 #' SAM formated as a markdown table
 #'
 #' The tinytable package is used and functions of this package can be
@@ -66,29 +65,15 @@ as.matrix.sam <- function(x, ...){
 #'
 #' @name sam2tt
 #' @param x a `sam` object
-#' @param digits the number of digits
-#' @param bigmark a character indicating the millions separator
-#' @param decimal decomal sign (by default the comma)
-#' @param rm_zero a boolean, if `TRUE`, zero values are removed from
-#'     the matrix
-#' @param fontsize police size
-#' @param height line height
-#' @param colors a named list of colors for the groups, the accounts
-#'     and the soldes
+#' @param height the height of the lines
+#' @param theme a boolean, if `TRUE` the `theme_sam` function is
+#'     applied
 #' @importFrom tinytable tt group_tt style_tt format_tt
 #' @export
-sam2tt <- function(x,
-                   rm_zero = TRUE,
-                   bigmark = " ",
-                   decimal = ",",
-                   digits = 1,
-                   height = 1,
-                   fontsize = 1,
-                   colors = list(groupes = "grey70", comptes = "grey85", soldes = "grey95")
-                   ){
-    if (inherits(x, "data.frame")) x <- as.matrix(x)
-    class(x) <- c("matrix", "array")
-    if (rm_zero) x[x == 0] <- NA
+sam2tt <- function(x, height = 1, theme = TRUE){
+    x <- as.matrix(x)
+#    class(x) <- c("matrix", "array")
+#    if (rm_zero) x[x == 0] <- NA
     row_nms <- rownames(x)
     col_nms <- colnames(x)
 
@@ -128,22 +113,46 @@ sam2tt <- function(x,
     i_agts <- gps_i$agents + 7
     i_acc <- gps_i$accumulation + 8
     x <- tt(x, escape = TRUE, height = height) |>
-        format_tt(replace = TRUE,
-                  digits = digits,
-                  num_mark_big = bigmark,
-                  num_mark_dec = decimal,
-                  num_fmt = "significant_cell") |>
+        format_tt(replace = TRUE) |> 
         group_tt(j = gps_j) |>
-        group_tt(i = gps_i) |>
-        style_tt(j = 1, background = colors$comptes) |>
-        style_tt(i = 0, background = colors$comptes, align = "c") |>
+        group_tt(i = gps_i)# |>
+    if (theme) x <- x |> theme_sam()
+    x
+}
+
+#' Theme for the samfr package
+#'
+#' Default customization for tables constructed using either `stbl` or
+#' `sam`
+#'
+#' @name theme_sam
+#' @param x a data frame
+#' @param colors a list of colors for "groupes" and "comptes" %>%
+#' @param fontsize font size
+#' @param digits number of digits
+#' @param align the alignement (by default center)
+#' @param grid if `TRUE` (the default), grid is added
+#' @format a `tinytable` object
+#' @importFrom tinytable theme_grid
+#' @export
+theme_sam <- function(x,
+                      colors = list(groupes = "#878787",
+                                   comptes = "#D3D3D3"),
+                      fontsize = 1,
+                      digits = 1,
+                      align = "c",
+                      grid = TRUE){
+    if (grid) x <- x |> theme_grid()
+    x <- x |> 
+        style_tt(j = 1, align = "l", background = colors$comptes) |> 
+        style_tt(i = 0, background = colors$comptes) |> 
         style_tt("groupj", background = colors$groupes) |>
-        style_tt("groupi", background = colors$groupes, align = "c") |>
+        style_tt("groupi", background = colors$groupes, align = align) |>
         style_tt(fontsize = fontsize) |>
-        style_tt(i = i_acc, j = gps_j$agt, background = colors$soldes)
-    if (length(j_rpb) > 0){
-        x <- x |> 
-            style_tt(j = c(j_rpb, j_rdb), i = i_agts + (0:n_agts), background = colors$soldes)
-    }
+        style_tt(align = align) |>
+        style_tt(j = 1, align = "l") |> 
+        style_tt("groupj", background = colors$groupes) |>
+        style_tt("groupi", background = colors$groupes, align = align) |>
+        format_tt(digits = digits, replace = TRUE)
     x
 }

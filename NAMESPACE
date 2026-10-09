@@ -11,6 +11,7 @@ export(sam2tt)
 export(setaname)
 export(stbl)
 export(stbl2sam)
+export(theme_sam)
 export(verif_eq)
 export(wider)
 export(xtbl)
@@ -26,5 +27,6 @@ importFrom(tinytable,
   format_tt,
   group_tt,
   style_tt,
+  theme_grid,
   tt
 )

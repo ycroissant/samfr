@@ -167,7 +167,7 @@ xtbl <-  function (x, formula, shares = NULL,
     if (lgt_rows > 1L)
         x[[2]] <- as.character(x[[2]])
 
-    for (i in names(x)) x[[i]][is.na(x[[i]])] <- 0
+#    for (i in names(x)) x[[i]][is.na(x[[i]])] <- 0
 
     names(x)[(lgt_rows + 1):length(x)] <- substr(names(x)[(lgt_rows + 1):length(x)], 8, 200)
     x <- x[c(names(x)[1:lgt_rows], intersect(cols_ordered, names(x)))]
@@ -181,11 +181,13 @@ xtbl <-  function (x, formula, shares = NULL,
 #' 
 #' @name xtbl2tt
 #' @param x a data frame
-#' @param height la hauteur des lignes
+#' @param height the height of the lines
+#' @param theme a boolean, if `TRUE` the `theme_sam` function is
+#'     applied
 #' @param ... supplementary arguments passed to `tinytable`
 #' @importFrom tinytable tt group_tt style_tt format_tt
 #' @export
-xtbl2tt <- function(x, height = 1, ...){
+xtbl2tt <- function(x, height = 1, theme = TRUE, ...){
     col_nms <- names(x)
     # identification des colonnes non numeriques
     num_cols <- sapply(x, is.numeric)
@@ -229,13 +231,17 @@ xtbl2tt <- function(x, height = 1, ...){
         x <- x[, - 1, drop = FALSE]
         names(x) <- nms_x
     }
-    x <- tt(x, escape = TRUE, height = height, ...)
+    x <- tt(x, escape = TRUE, height = height, ...) |>
+        format_tt(replace = TRUE)
     if (rows_group) x <- x |> group_tt(i = rgps)
     if (multi_columns){
         x <- x |> group_tt(j = cols)
     }
-    ## x <- x |> format_tt(replace = TRUE, num_fmt = "decimal")
-    ## if (rows_group)
-    ##     x <- x |> style_tt(i = "groupi", align = "c", color = "teal", line = "lrtb")
+    if (theme){
+        x <- x |> theme_sam()
+    }
     x
 }
+
+    
+                        
